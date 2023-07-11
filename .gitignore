@@ -1,0 +1,27 @@
+# Ignore compiled output
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Ignore IDE and editor generated files and folders
+.idea/
+.vscode/
+*.code-workspace
+*.sublime-workspace
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*~
+*.swp
+*.bak
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore dependencies (specific to Go projects)
+/vendor/
