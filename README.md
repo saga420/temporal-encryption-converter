@@ -1,12 +1,12 @@
 # Temporal Encryption Converter
 
-Temporal Encryption Converter is a Go package that provides encryption and decryption for payloads within the Temporal
-workflow engine. The package also implements a custom context propagator, which allows passing of context values across
-different workflows.
+The Temporal Encryption Converter is a Go package designed to deliver encryption and decryption solutions for payloads
+within the Temporal workflow engine. The package incorporates a unique context propagator, enabling the transmission of
+context values across multiple workflows.
 
 ## Installation
 
-Use go get to download and install the package.
+Install the package with the go get command:
 
 ```bash
 go get github.com/saga420/temporal-encryption-converter
@@ -14,77 +14,42 @@ go get github.com/saga420/temporal-encryption-converter
 
 ## Usage
 
+> SEE example/*.go for more examples
+
 ```go
-package main
+// Generate a key pair for the client
+client, _ := encryption.GenerateKeyPair()
+fmt.Println("Client's Private Key: ", client.PrivateKey)
+fmt.Println("Client's Public Key: ", client.PublicKey)
 
-import (
-	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/converter"
-	"go.temporal.io/sdk/workflow"
-	"go.uber.org/zap"
-	temporal_encryption_converter "temporal-encryption-converter"
-	"time"
-)
-
-type TemporalOptions struct {
-	Namespace             string
-	HostPort              string
-	WorkflowIdleTimeout   time.Duration
-	TaskQueue             string
-	X25519PublicKey       string
-	X25519PrivateKey      string
-	X25519SharedPublicKey string
-}
-
-// NewTemporalClient creates a new Temporal client
-// zap.NewNop() is used for the logger because the logger is already configured in the application
-// and we don't want to configure it again here
-// The logger is used by the Temporal encryption converter
-// The Temporal encryption converter is used to encrypt the payloads of the Temporal workflows
-func NewTemporalClient(opts TemporalOptions) (client.Client, error) {
-	clientOptions := client.Options{
-		DataConverter: temporal_encryption_converter.NewEncryptionDataConverter(
-			converter.GetDefaultDataConverter(),
-			temporal_encryption_converter.DataConverterOptions{
-				Compress: true,
-				// The WorkerPublicKeyForClient is used to encrypt the payloads of the Temporal workflows
-				SharedPublicKey: opts.X25519SharedPublicKey,
-				// The KeyPair is used to encrypt the payloads of the Temporal workflows
-				KeyPair: temporal_encryption_converter.KeyPair{
-					PrivateKey:               opts.X25519PrivateKey,
-					PublicKey:                opts.X25519PublicKey,
-					WorkerPublicKeyForClient: opts.X25519SharedPublicKey,
-				},
-			},
-			zap.NewNop(),
-		),
-		ContextPropagators: []workflow.ContextPropagator{
-			temporal_encryption_converter.NewContextPropagator(zap.NewNop()),
-		},
-	}
-	c, err := client.NewClientServiceWithOptions(opts.HostPort, opts.Namespace, clientOptions)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
+// Generate a key pair for the worker
+worker, _ := encryption.GenerateKeyPair()
+fmt.Println("Worker's Private Key: ", worker.PrivateKey)
+fmt.Println("Worker's Public Key: ", worker.PublicKey)
 ```
 
-The package also allows you to pass context values across different workflows using a custom context propagator. For
-instance, this might be useful for passing encryption keys or other relevant context.
+The X25519 algorithm is used for key exchange. Before initiating a workflow, the client must possess knowledge of the
+worker's public key, which is essential for encrypting data intended solely for that worker to decrypt and process.
+
+Intriguingly, it's not required for the worker to preconfigure the client's public key. This key is conveyed within the
+context metadata of the workflow, allowing any client (each potentially with different key pairs) to transmit encrypted
+data to the worker using the worker's public key. The worker can subsequently receive and process workflow messages from
+any client, promoting a flexible and secure communication system.
+
+Note: Error handling is critical in production code. While errors are omitted for brevity in these examples, in a
+production environment, it's crucial to always check and handle errors effectively.
 
 ## Features
 
-- Provides support for payload encryption and decryption in Temporal workflows.
-- Uses AES256_GCM_PBKDF2_Curve25519 and XChaCha20_Poly1305_PBKDF2_Curve25519 encryption algorithms.
-- Allows for ZLib compression before encryption for payload size reduction.
-- Enables passing of context values across different workflows.
+- Empowers payload encryption and decryption in Temporal workflows.
+- Implements AES256_GCM_PBKDF2_Curve25519 and XChaCha20_Poly1305_PBKDF2_Curve25519 encryption algorithms.
+- Supports ZLib compression pre-encryption for payload size optimization.
+- Facilitates passing of context values across diverse workflows.
 
 ## Contributing
 
-Contributions are welcome. Please fork the repository and create a pull request with your changes.
+We warmly welcome contributions. Kindly fork the repository and submit a pull request with your amendments.
 
 ## License
 
-This package is available under the MIT License.
+This package is distributed under the terms of the MIT License.
