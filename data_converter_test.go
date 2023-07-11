@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-faker/faker/v4"
+	commonpb "go.temporal.io/api/common/v1"
 	"go.uber.org/zap"
 	"testing"
 
@@ -25,6 +26,60 @@ func generateContext(algoMethod encryption.AlgoMethod, workerPublicKey string) c
 	})
 
 	return ctx
+}
+
+// TestNewEncryptionDataConverter tests that NewEncryptionDataConverter returns a DataConverter
+func TestNewEncryptionDataConverter(t *testing.T) {
+	parent := converter.GetDefaultDataConverter()
+	options := DataConverterOptions{
+		SharedPublicKey: "testSharedPublicKey",
+		Salt:            "testSalt",
+		AlgoMethod:      encryption.AES256_GCM_PBKDF2_Curve25519,
+		Iterations:      "testIterations",
+		KeyPair: KeyPair{
+			PrivateKey:               "testPrivateKey",
+			PublicKey:                "testPublicKey",
+			WorkerPublicKeyForClient: "testWorkerPublicKeyForClient",
+		},
+		Compress: false,
+	}
+	logger := zap.NewExample()
+
+	dc := NewEncryptionDataConverter(parent, options, logger)
+
+	if dc == nil {
+		t.Error("NewEncryptionDataConverter returned nil")
+	}
+}
+
+// TestExtractKeySpecsFromPayload tests that extractKeySpecsFromPayload returns the correct KeySpecs
+func TestExtractKeySpecsFromPayload(t *testing.T) {
+	payload := &commonpb.Payload{
+		Metadata: map[string][]byte{
+			MetadataEncryptionSharedPublicKey: []byte("testSharedPublicKey"),
+			MetadataEncryptionSalt:            []byte("testSalt"),
+			MetadataEncryptionAlgoMethod:      []byte(encryption.AES256_GCM_PBKDF2_Curve25519),
+			MetadataEncryptionIterations:      []byte("testIterations"),
+		},
+		Data: []byte("testData"),
+	}
+
+	specs, err := extractKeySpecsFromPayload(payload)
+	if err != nil {
+		t.Errorf("extractKeySpecsFromPayload returned error: %v", err)
+	}
+	if specs.SharedPublicKey != "testSharedPublicKey" {
+		t.Errorf("expected SharedPublicKey to be %s, got %s", "testSharedPublicKey", specs.SharedPublicKey)
+	}
+	if specs.Salt != "testSalt" {
+		t.Errorf("expected Salt to be %s, got %s", "testSalt", specs.Salt)
+	}
+	if specs.Iterations != "testIterations" {
+		t.Errorf("expected Iterations to be %s, got %s", "testIterations", specs.Iterations)
+	}
+	if specs.Algo != encryption.AES256_GCM_PBKDF2_Curve25519 {
+		t.Errorf("expected Algo to be %s, got %s", encryption.AES256_GCM_PBKDF2_Curve25519, specs.Algo)
+	}
 }
 
 // Test for basic string encoding and decoding
@@ -315,6 +370,77 @@ func TestEncodeDecodeConcurrency(t *testing.T) {
 		case <-done:
 		case err := <-errors:
 			t.Fatalf("error: %s", err.Error())
+		}
+	}
+}
+
+func TestCodecEncodeDecode(t *testing.T) {
+	client, _ := encryption.GenerateKeyPair()
+	worker, _ := encryption.GenerateKeyPair()
+
+	// Create a new codec.
+	codec := Codec{
+		SharedPublicKey: worker.PublicKey,
+		AlgoMethod:      encryption.AES256_GCM_PBKDF2_Curve25519,
+		Salt:            "testSalt",
+		Iterations:      "1000",
+		KeyPair: KeyPair{
+			PrivateKey:               client.PrivateKey,
+			PublicKey:                client.PublicKey,
+			WorkerPublicKeyForClient: worker.PublicKey,
+		},
+	}
+
+	// Create some payloads.
+	payloads := []*commonpb.Payload{
+		{
+			Metadata: map[string][]byte{
+				MetadataEncryptionSharedPublicKey: []byte(client.PublicKey),
+				MetadataEncryptionSalt:            []byte("testSalt"),
+				MetadataEncryptionAlgoMethod:      []byte(encryption.AES256_GCM_PBKDF2_Curve25519),
+				MetadataEncryptionIterations:      []byte("1000"),
+			},
+			Data: []byte("payloadData"),
+		},
+	}
+
+	// Test Encode.
+	encodedPayloads, err := codec.Encode(payloads)
+	if err != nil {
+		t.Fatalf("Encode returned error: %v", err)
+	}
+
+	if len(encodedPayloads) != len(payloads) {
+		t.Errorf("Expected %d encoded payloads, got %d", len(payloads), len(encodedPayloads))
+	}
+
+	codecWorker := Codec{
+		SharedPublicKey: client.PublicKey,
+		AlgoMethod:      encryption.AES256_GCM_PBKDF2_Curve25519,
+		Salt:            "testSalt",
+		Iterations:      "1000",
+		KeyPair: KeyPair{
+			PrivateKey:               worker.PrivateKey,
+			PublicKey:                worker.PublicKey,
+			WorkerPublicKeyForClient: client.PublicKey,
+		},
+	}
+
+	// Test Decode.
+	decodedPayloads, err := codecWorker.Decode(encodedPayloads)
+	if err != nil {
+		t.Fatalf("Decode returned error: %v", err)
+	}
+
+	if len(decodedPayloads) != len(encodedPayloads) {
+		t.Errorf("Expected %d decoded payloads, got %d", len(encodedPayloads), len(decodedPayloads))
+	}
+
+	// Check that the decoded payloads match the original payloads.
+	for i, decodedPayload := range decodedPayloads {
+		originalPayload := payloads[i]
+		if string(decodedPayload.Data) != string(originalPayload.Data) {
+			t.Errorf("Expected payload data to be %s, got %s", string(originalPayload.Data), string(decodedPayload.Data))
 		}
 	}
 }
