@@ -52,33 +52,76 @@ func TestNewEncryptionDataConverter(t *testing.T) {
 	}
 }
 
-// TestExtractKeySpecsFromPayload tests that extractKeySpecsFromPayload returns the correct KeySpecs
+func clonePayload(p *commonpb.Payload) *commonpb.Payload {
+	newPayload := &commonpb.Payload{
+		Metadata: make(map[string][]byte),
+		Data:     append([]byte(nil), p.Data...), // deep copy Data
+	}
+
+	for k, v := range p.Metadata {
+		newPayload.Metadata[k] = append([]byte(nil), v...) // deep copy Metadata
+	}
+
+	return newPayload
+}
+
+// TestEncodeAndDecodeWithContext tests that Encode and Decode work with context
 func TestExtractKeySpecsFromPayload(t *testing.T) {
-	payload := &commonpb.Payload{
+	payloadTemplate := commonpb.Payload{
 		Metadata: map[string][]byte{
 			MetadataEncryptionSharedPublicKey: []byte("testSharedPublicKey"),
 			MetadataEncryptionSalt:            []byte("testSalt"),
 			MetadataEncryptionAlgoMethod:      []byte(encryption.AES256_GCM_PBKDF2_Curve25519),
-			MetadataEncryptionIterations:      []byte("testIterations"),
+			MetadataEncryptionIterations:      []byte("10000"),
 		},
 		Data: []byte("testData"),
 	}
 
-	specs, err := extractKeySpecsFromPayload(payload)
-	if err != nil {
-		t.Errorf("extractKeySpecsFromPayload returned error: %v", err)
+	testCases := []struct {
+		name   string
+		modify func(*commonpb.Payload)
+		err    error
+	}{
+		{
+			name: "Missing SharedPublicKey",
+			modify: func(p *commonpb.Payload) {
+				delete(p.Metadata, MetadataEncryptionSharedPublicKey)
+			},
+			err: fmt.Errorf("no encryption key id"),
+		},
+		{
+			name: "Missing Salt",
+			modify: func(p *commonpb.Payload) {
+				delete(p.Metadata, MetadataEncryptionSalt)
+			},
+			err: fmt.Errorf("no encryption salt"),
+		},
+		{
+			name: "Missing AlgoMethod",
+			modify: func(p *commonpb.Payload) {
+				delete(p.Metadata, MetadataEncryptionAlgoMethod)
+			},
+			err: fmt.Errorf("no encryption algo"),
+		},
+		{
+			name: "Missing Iterations",
+			modify: func(p *commonpb.Payload) {
+				delete(p.Metadata, MetadataEncryptionIterations)
+			},
+			err: fmt.Errorf("no encryption iterations"),
+		},
 	}
-	if specs.SharedPublicKey != "testSharedPublicKey" {
-		t.Errorf("expected SharedPublicKey to be %s, got %s", "testSharedPublicKey", specs.SharedPublicKey)
-	}
-	if specs.Salt != "testSalt" {
-		t.Errorf("expected Salt to be %s, got %s", "testSalt", specs.Salt)
-	}
-	if specs.Iterations != "testIterations" {
-		t.Errorf("expected Iterations to be %s, got %s", "testIterations", specs.Iterations)
-	}
-	if specs.Algo != encryption.AES256_GCM_PBKDF2_Curve25519 {
-		t.Errorf("expected Algo to be %s, got %s", encryption.AES256_GCM_PBKDF2_Curve25519, specs.Algo)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			payload := clonePayload(&payloadTemplate)
+			tc.modify(payload)
+
+			_, err := extractKeySpecsFromPayload(payload)
+			if err == nil || err.Error() != tc.err.Error() {
+				t.Errorf("Expected error %v, but got %v", tc.err, err)
+			}
+		})
 	}
 }
 

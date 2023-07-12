@@ -194,9 +194,9 @@ func (e *Codec) Decode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error
 
 		var b []byte
 		switch spec.Algo {
-		case encryption.AlgoMethod(encryption.AES256_GCM_PBKDF2_Curve25519):
+		case encryption.AES256_GCM_PBKDF2_Curve25519:
 			b, err = encryption.AesGcmDecrypt(p.Data, spec)
-		case encryption.AlgoMethod(encryption.XChaCha20_Poly1305_PBKDF2_Curve25519):
+		case encryption.XChaCha20_Poly1305_PBKDF2_Curve25519:
 			b, err = encryption.ChaChaDecrypt(p.Data, spec)
 		default:
 			return nil, fmt.Errorf("unknown algo method: %s", spec.Algo)
