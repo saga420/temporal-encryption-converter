@@ -3,56 +3,22 @@ package encryption
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"github.com/saga420/temporal-encryption-converter/utils"
 	"io"
 
 	"golang.org/x/crypto/chacha20poly1305"
-	"golang.org/x/crypto/curve25519"
 	"golang.org/x/crypto/pbkdf2"
 )
 
 // ComputeChaChaSharedSecret computes the shared secret using elliptic curve Diffie-Hellman
 func ComputeChaChaSharedSecret(specs CipherKeySpecs) (sharedSecret []byte, err error) {
-	// Decode the public key from hex
-	pubKeyBytes, err := hex.DecodeString(specs.SharedPublicKey)
+	sharedSecret, err = ComputeX25519SharedKey(specs.SharedPublicKey, specs.PrivateKey)
 	if err != nil {
-		return nil, err
-	}
-
-	// Decode the private key from hex
-	privKeyBytes, err := hex.DecodeString(specs.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if the keys are the correct size
-	if len(pubKeyBytes) != curve25519.PointSize || len(privKeyBytes) != curve25519.ScalarSize {
-		return nil, fmt.Errorf("keys are not the correct size")
-	}
-
-	// Compute the shared secret using elliptic curve Diffie-Hellman
-	sharedSecret, err = curve25519.X25519(privKeyBytes, pubKeyBytes)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to compute shared secret: %w", err)
 	}
 
 	// Convert the iterations to int
-	iterations, err := utils.SafeStringToInt(specs.Iterations)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert iterations to int: %w", err)
-	}
-
-	// Check if the iterations are within the range
-	if iterations > 8000000 {
-		iterations = 8000000
-	}
-
-	// Check if the iterations are within the range
-	if iterations < 4096 {
-		iterations = 4096
-	}
+	iterations := ParsePBKDF2Iterations(specs.Iterations)
 
 	// Derive a 256-bit key from the shared secret using PBKDF2
 	sharedSecret = pbkdf2.Key(sharedSecret, []byte(specs.Salt), iterations, chacha20poly1305.KeySize, sha256.New)

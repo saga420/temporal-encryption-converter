@@ -71,19 +71,6 @@ func TestComputeAESSharedSecret(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("should return error when iterations is not a number", func(t *testing.T) {
-		keyPair, _ := GenerateKeyPair()
-		specs := CipherKeySpecs{
-			SharedPublicKey: keyPair.PublicKey,
-			PrivateKey:      keyPair.PrivateKey,
-			Salt:            "abcdef",
-			Iterations:      "not a number",
-		}
-
-		_, err := ComputeAESSharedSecret(specs)
-		assert.Error(t, err)
-	})
-
 	t.Run("should not return error when parameters are valid", func(t *testing.T) {
 		keyPair, _ := GenerateKeyPair()
 		specs := CipherKeySpecs{

@@ -12,25 +12,62 @@ import (
 	"go.temporal.io/sdk/converter"
 )
 
+// KeyPair is used to encrypt/decrypt the shared public key.
+// All fields here are (X25519 keypair hex encoded as string)
 type KeyPair struct {
 	PrivateKey               string
 	PublicKey                string
 	WorkerPublicKeyForClient string
 }
 
+/*************************************************************
+* Payload format for encrypted data. All fields are required.
+* For fields in metadata see below:
+*************************************************************
+# TODO: Add support for multiple encryption methods.
+# TODO: Add versioning to metadata. (e.g. "version": "1.0.0")
+*************************************************************
+{
+	  "metadata": {
+		"enc-algo-method": "",
+		"enc-iterations": "",
+		"enc-salt": "",
+		"enc-shared-public-key": "",
+		"encoding": ""
+	  },
+	  "data": "ENCRYPTED DATA in BASE64 ENCODED STRING"
+}
+*************************************************************/
+
 const (
 	// MetadataEncodingEncrypted is "binary/encrypted"
 	MetadataEncodingEncrypted = "binary/encrypted"
+
 	// MetadataEncryptionSharedPublicKey is "encryption-shared-public-key"
+	// This is the 25519 public keypair from client (starter) used to encrypt the shared public key.
 	MetadataEncryptionSharedPublicKey = "enc-shared-public-key"
+
 	// MetadataEncryptionSalt is "encryption-salt"
+	// This is the salt used to derive the encryption key. (hex encoded as string)
+	// It is generated randomly for each workflow. (by client, worker use it directly)
 	MetadataEncryptionSalt = "enc-salt"
+
 	// MetadataEncryptionAlgoMethod is "encryption-algo-method"
+	// This is the encryption algorithm used to encrypt the data.
+	// SEE encryption.AlgoMethod for supported algorithms.
 	MetadataEncryptionAlgoMethod = "enc-algo-method"
+
 	// MetadataEncryptionIterations is "encryption-iterations"
+	// This is the number of iterations used to derive the encryption key by pbkdf2.
+	// We limited here that iterations must be between 8000000 and 4096.
+	// We know that iterations higher is more secure, but it will take more time to encrypt/decrypt.
+	// Since this is a workflow we need to be careful about the time it takes to encrypt/decrypt.
+	// We don't want to have a workflow that takes too long to encrypt/decrypt.
+	// That's also why we don't use Argon2id.
 	MetadataEncryptionIterations = "enc-iterations"
 )
 
+// DataConverter is a wrapper around a DataConverter that encrypts/decrypts payloads.
 type DataConverter struct {
 	// Until EncodingDataConverter supports workflow.ContextAware we'll store parent here.
 	parent converter.DataConverter
@@ -39,6 +76,7 @@ type DataConverter struct {
 	logger  *zap.Logger
 }
 
+// DataConverterOptions are options used to create a DataConverter.
 type DataConverterOptions struct {
 	SharedPublicKey string
 	Salt            string
@@ -46,10 +84,13 @@ type DataConverterOptions struct {
 	Iterations      string
 	KeyPair         KeyPair
 	// Enable ZLib compression before encryption.
+	// We recommend to enable compression only if you know that your data will compress well.
 	Compress bool
 }
 
-// Codec implements PayloadCodec using AES Crypt.
+// Codec implements PayloadCodec using the encryption.AlgoMethod provided.
+// It is used to encrypt/decrypt payloads.
+// KeyPair is used to encrypt/decrypt the shared public key. (X25519 keypair hex encoded as string)
 type Codec struct {
 	SharedPublicKey string
 	AlgoMethod      encryption.AlgoMethod
@@ -77,6 +118,7 @@ func (dc *DataConverter) WithContext(ctx context.Context) converter.DataConverte
 
 		return NewEncryptionDataConverter(parent, options, dc.logger)
 	} else {
+		// This should never happen
 		dc.logger.Debug("failed", zap.Any("val", val), zap.Bool("ok", ok))
 	}
 

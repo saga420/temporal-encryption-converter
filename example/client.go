@@ -4,7 +4,6 @@ import (
 	"context"
 	temporal_encryption_converter "github.com/saga420/temporal-encryption-converter"
 	"github.com/saga420/temporal-encryption-converter/encryption"
-	"github.com/saga420/temporal-encryption-converter/utils"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/workflow"
@@ -70,7 +69,7 @@ func StartWorkflow(ctx context.Context, cli client.Client, workflowType string, 
 		TaskQueue: "example",
 	}
 
-	salt, err := utils.GenerateSalt()
+	salt, err := encryption.GenerateSalt()
 	if err != nil {
 		salt = workflowID
 	}
