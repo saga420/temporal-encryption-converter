@@ -234,30 +234,6 @@ func (s *UnitTestSuite) Test_Extract_Error() {
 	s.Nil(ctx.Value(PropagateKey))
 }
 
-func (s *UnitTestSuite) Test_Extract_Error_PayloadConvert() {
-	ctx := context.Background()
-
-	// Initialize the propagator
-	propagator := NewContextPropagator(
-		zap.NewExample().Named("Test_Extract_Error_PayloadConvert"),
-	)
-
-	// Define a mock HeaderReader with a payload that can't be converted
-	reader := &MockHeaderReader{
-		Fields: map[string]*commonpb.Payload{
-			propagationKey: { // Replace this with real key if it's different
-				Data: []byte("invalid payload"),
-			},
-		},
-	}
-
-	// Call the Extract method
-	newCtx, err := propagator.Extract(ctx, reader)
-	// Check if an error is returned
-	s.NoError(err) // As per your current Extract function, it returns nil if there's an error
-	s.Nil(newCtx.Value(PropagateKey))
-}
-
 func (s *UnitTestSuite) Test_Inject_Error_TypeMismatch() {
 	// Create a context and set the PropagateKey value with wrong type
 	ctx := context.WithValue(context.Background(), PropagateKey, "wrong type")

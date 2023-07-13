@@ -1,6 +1,7 @@
 [![Go Report Card][go-report-image]][go-report-url]
 [![Go Reference](https://pkg.go.dev/badge/github.com/saga420/temporal-encryption-converter.svg)](https://pkg.go.dev/github.com/saga420/temporal-encryption-converter)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Codecov](https://codecov.io/gh/saga420/temporal-encryption-converter/branch/main/graph/badge.svg)](https://codecov.io/gh/saga420/temporal-encryption-converter)
 
 [go-report-image]: https://goreportcard.com/badge/github.com/saga420/temporal-encryption-converter
 [go-report-url]: https://goreportcard.com/report/github.com/saga420/temporal-encryption-converter
