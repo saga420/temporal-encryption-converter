@@ -20,6 +20,7 @@ type UnitTestSuite struct {
 	testsuite.WorkflowTestSuite
 	worker encryption.X25519KeyPair
 	client encryption.X25519KeyPair
+	salt   string
 }
 
 type UnitTestSuiteError struct {
@@ -43,10 +44,11 @@ func TestUnitTestSuite(t *testing.T) {
 	s := &UnitTestSuite{}
 	// Create header as if it was injected from context.
 	// Test suite doesn't accept context therefore it is not possible to inject PropagateKey value it from real context.
+	salt, _ := encryption.GenerateSalt()
 	payload, _ := converter.GetDefaultDataConverter().ToPayload(
 		CryptContext{
 			SharedPublicKey: worker.PublicKey,
-			Salt:            client.PrivateKey,
+			Salt:            salt,
 			AlgoMethod:      encryption.AES256_GCM_PBKDF2_Curve25519,
 			Iterations:      "1000",
 		},
@@ -60,6 +62,7 @@ func TestUnitTestSuite(t *testing.T) {
 
 	s.client = client
 	s.worker = worker
+	s.salt = salt
 
 	suite.Run(t, s)
 }
@@ -142,6 +145,7 @@ func (s *UnitTestSuite) Test_CtxPropWorkflow() {
 	pv, ok := propagatedValue.(CryptContext)
 	s.True(ok)
 	s.Equal(s.worker.PublicKey, pv.SharedPublicKey)
+	s.Equal(s.salt, pv.Salt)
 }
 
 func (s *UnitTestSuiteError) Test_CtxPropWorkflow_Error() {

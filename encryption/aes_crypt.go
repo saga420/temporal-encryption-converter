@@ -37,19 +37,19 @@ func AesGcmEncrypt(plainData []byte, specs CipherKeySpecs) ([]byte, error) {
 	// Create a new AES cipher block
 	block, err := aes.NewCipher(sharedKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new AES cipher block: %w", err)
 	}
 
 	// Create a new AES-GCM AEAD cipher
 	aesGcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new AES-GCM AEAD cipher: %w", err)
 	}
 
 	// Create a new nonce
 	nonce := make([]byte, aesGcm.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new nonce: %w", err)
 	}
 
 	// Encrypt the data
@@ -68,13 +68,13 @@ func AesGcmDecrypt(encryptedData []byte, specs CipherKeySpecs) ([]byte, error) {
 	// Create a new AES cipher block
 	block, err := aes.NewCipher(sharedKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new AES cipher block: %w", err)
 	}
 
 	// Create a new AES-GCM AEAD cipher
 	aesGcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new AES-GCM AEAD cipher: %w", err)
 	}
 
 	// Check if the encrypted data is too short
@@ -86,7 +86,7 @@ func AesGcmDecrypt(encryptedData []byte, specs CipherKeySpecs) ([]byte, error) {
 	nonce, encryptedData := encryptedData[:aesGcm.NonceSize()], encryptedData[aesGcm.NonceSize():]
 	plaintext, err := aesGcm.Open(nil, nonce, encryptedData, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decrypt data: %w", err)
 	}
 
 	return plaintext, nil

@@ -14,7 +14,7 @@ import (
 func ComputeChaChaSharedSecret(specs CipherKeySpecs) (sharedSecret []byte, err error) {
 	sharedSecret, err = ComputeX25519SharedKey(specs.SharedPublicKey, specs.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compute shared secret: %w", err)
+		return nil, err
 	}
 
 	// Convert the iterations to int
@@ -36,13 +36,13 @@ func ChaChaEncrypt(plainData []byte, specs CipherKeySpecs) ([]byte, error) {
 	// Create a new ChaCha20-Poly1305 AEAD cipher
 	aead, err := chacha20poly1305.NewX(sharedKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new ChaCha20-Poly1305 AEAD cipher: %w", err)
 	}
 
 	// Generate a random nonce
 	nonce := make([]byte, chacha20poly1305.NonceSizeX)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
 
 	// Encrypt the plainData
@@ -60,7 +60,7 @@ func ChaChaDecrypt(encryptedData []byte, specs CipherKeySpecs) ([]byte, error) {
 	// Create a new ChaCha20-Poly1305 AEAD cipher
 	aead, err := chacha20poly1305.NewX(sharedKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new ChaCha20-Poly1305 AEAD cipher: %w", err)
 	}
 
 	// Check if the encryptedData is too short

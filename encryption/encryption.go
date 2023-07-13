@@ -54,13 +54,13 @@ func ComputeX25519SharedKey(SharedPublicKey, PrivateKey string) (sharedSecret []
 	// Decode the public key from hex
 	pubKeyBytes, err := hex.DecodeString(SharedPublicKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error decoding public key: %w", err)
 	}
 
 	// Decode the private key from hex
 	privKeyBytes, err := hex.DecodeString(PrivateKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error decoding private key: %w", err)
 	}
 
 	// Check if the keys are the correct size
@@ -71,7 +71,7 @@ func ComputeX25519SharedKey(SharedPublicKey, PrivateKey string) (sharedSecret []
 	// Compute the shared secret using elliptic curve Diffie-Hellman
 	sharedSecret, err = curve25519.X25519(privKeyBytes, pubKeyBytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error computing shared secret: %w", err)
 	}
 	return sharedSecret, nil
 }
@@ -92,7 +92,7 @@ func GenerateSalt() (string, error) {
 	salt := make([]byte, 64)
 	_, err := rand.Read(salt)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error generating salt: %w", err)
 	}
 
 	return hex.EncodeToString(salt), nil
