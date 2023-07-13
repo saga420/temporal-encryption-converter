@@ -166,3 +166,70 @@ func (s *UnitTestSuiteError) Test_CtxPropWorkflow_Error() {
 	_, ok := propagatedValue.(CryptContext)
 	s.False(ok)
 }
+
+type MockHeaderWriter struct {
+	Fields map[string]*commonpb.Payload
+}
+
+func (m *MockHeaderWriter) Set(key string, value *commonpb.Payload) {
+	m.Fields[key] = value
+}
+
+type MockHeaderReader struct {
+	Fields map[string]*commonpb.Payload
+}
+
+func (m *MockHeaderReader) Get(key string) (*commonpb.Payload, bool) {
+	value, ok := m.Fields[key]
+	return value, ok
+}
+
+func (m *MockHeaderReader) ForEachKey(handler func(key string, value *commonpb.Payload) error) error {
+	for key, value := range m.Fields {
+		err := handler(key, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *UnitTestSuite) Test_Inject_Error() {
+	// Create a context without setting the PropagateKey value
+	ctx := context.Background()
+
+	// Initialize the propagator
+	propagator := NewContextPropagator(
+		zap.NewExample().Named("Test_Inject_Error"),
+	)
+
+	// Define a mock HeaderWriter
+	writer := &MockHeaderWriter{
+		Fields: make(map[string]*commonpb.Payload),
+	}
+
+	// Call the Inject method
+	err := propagator.Inject(ctx, writer)
+	// Check if an error is returned
+	s.Error(err)
+}
+
+func (s *UnitTestSuite) Test_Extract_Error() {
+	ctx := context.Background()
+
+	// Initialize the propagator
+	propagator := NewContextPropagator(
+		zap.NewExample().Named("Test_Extract_Error"),
+	)
+
+	// Define a mock HeaderReader
+	reader := &MockHeaderReader{
+		Fields: make(map[string]*commonpb.Payload),
+	}
+
+	// Call the Extract method
+	_, err := propagator.Extract(ctx, reader)
+	// Check if an error is returned
+	s.NoError(err)
+	s.Nil(ctx.Value(PropagateKey))
+}
