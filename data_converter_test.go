@@ -151,7 +151,7 @@ func TestEncodeDecodeString(t *testing.T) {
 					WorkerPublicKeyForClient: worker.PublicKey,
 				},
 			},
-			zap.NewNop(),
+			zap.NewExample(),
 		)
 
 		cryptDcWc := cryptDc.WithContext(ctx)
@@ -181,7 +181,7 @@ func TestEncodeDecodeString(t *testing.T) {
 					WorkerPublicKeyForClient: client.PublicKey,
 				},
 			},
-			zap.NewNop(),
+			zap.NewExample(),
 		)
 
 		// Decrypted Result
@@ -224,7 +224,7 @@ func TestEncodeDecodeJSON(t *testing.T) {
 					WorkerPublicKeyForClient: worker.PublicKey,
 				},
 			},
-			zap.NewNop(),
+			zap.NewExample(),
 		)
 
 		cryptDcWc := cryptDc.WithContext(ctx)
@@ -254,7 +254,7 @@ func TestEncodeDecodeJSON(t *testing.T) {
 					WorkerPublicKeyForClient: client.PublicKey,
 				},
 			},
-			zap.NewNop(),
+			zap.NewExample(),
 		)
 
 		// Decrypted Result
@@ -287,7 +287,7 @@ func TestEncodeDecodeErrors(t *testing.T) {
 				WorkerPublicKeyForClient: worker.PublicKey,
 			},
 		},
-		zap.NewNop(),
+		zap.NewExample(),
 	)
 
 	cryptDcWc := cryptDc.WithContext(ctx)
@@ -307,7 +307,7 @@ func TestEncodeDecodeErrors(t *testing.T) {
 				WorkerPublicKeyForClient: client.PublicKey,
 			},
 		},
-		zap.NewNop(),
+		zap.NewExample(),
 	)
 
 	// Decrypted Result
@@ -338,7 +338,7 @@ func TestEncodeDecodeConcurrency(t *testing.T) {
 				WorkerPublicKeyForClient: worker.PublicKey,
 			},
 		},
-		zap.NewNop(),
+		zap.NewExample(),
 	)
 
 	cryptDcWc := cryptDc.WithContext(ctx)
@@ -386,7 +386,7 @@ func TestEncodeDecodeConcurrency(t *testing.T) {
 						WorkerPublicKeyForClient: client.PublicKey,
 					},
 				},
-				zap.NewNop(),
+				zap.NewExample(),
 			)
 
 			// Decrypted Result
